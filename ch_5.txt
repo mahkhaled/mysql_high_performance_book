@@ -1,0 +1,104 @@
+Types of Indexes:
+=================
+
+1) B-Tree (lastname, firstname, dob)
+  
+  Limitations:
+  * Not leftmost dob
+  * Can't skip column in the index (lastname, dob)
+  * Range should be the least (lastname='mah' and firstname like 'm%' and dob='1985-5-25') The index will use only lastname and firstname
+
+2) Hash
+  
+  Limitations:
+  * Sorting
+  * No partial matching
+  * Only equality
+  * Many collisions
+
+
+Why Indexs?
+
+1. Reduce the amount of data the server has to examine
+2. Avoid sorting and temporary tables
+3. Turn random I/O into sequential I/O
+
+3 stars index:
+* one star if it places relevant rows adjacent to each other
+* second star if its rows are sorted in the order the query needs
+* final star if it contains all the columns needed for the query (covered)
+
+Limitations of all Index:
+* WHERE actor_id + 1 = 5;
+* WHERE TO_DAYS(CURRENT_DATE) - TO_DAYS(date_col) <= 10;
+
+
+Index selectivity => city_id before sex Given we don't have group or order
+
+
+MyISAM vs InnoDB
+
+* MyISAM uses a prefix compression technique that makes indexes smaller to fit in memory, but InnoDB leaves values uncompressed in its indexes
+* MyISAM indexes refer to the indexed rows by their physical storage locations, but InnoDB refers to them by their primary key values
+
+
+* For (AND), you need a single index with all the relevant columns, not multiple indexes have to be combined
+* For (OR), the query can use both indexes, scanning them simultaneously and merging the results
+
+
+Covered index will not fetch data from desk. However, it will read data from the index
+
+
+Index for Sorts:
+1) Where
+2) Group/Order
+3) Selects
+
+
+Redundant and Duplicate Indexes:
+Ex: (state_id), (state_id, city, address)
+The long index will be slower and more complex but we may need it in some queries
+So that keep both of them and server will pick the more suitable one for each query
+
+
+
+Avoiding Multiple Range Conditions:
+===================================
+Rages condistions examples:
+actor_id > 45
+age between 18 and 25
+
+actore_id in (1,5) is NOT range, it is MULTIPLE equality
+
+The range condition makes MySQL ignore any FURTHER columns in the index, but the multiple equality condition doesn’t have that limitation
+
+Ex:
+sex in ('m','f')
+And dob > '1985-5-25'
+And age between 18 and 25
+
+there is a problem with age
+
+
+
+Optimizing Sorts:
+=================
+
+Sorting small result sets with filesorts is fast
+
+SELECT <cols> FROM profiles WHERE sex='M' ORDER BY rating LIMIT 100000, 10;
+Although, we are using limit 10, there is a problem because advanced page, it will be slow :(
+
+However, we can use join to retrieve only the PK columns using covering index
+
+SELECT <cols> FROM profiles INNER JOIN (
+SELECT <primary key cols> FROM profiles WHERE x.sex='M' ORDER BY rating LIMIT 100000, 10
+ ) AS x USING(<primary key cols>);
+
+
+Reducing Index and Data Fragmentation
+=====================================
+
+MyISAM tables might suffer from all types of fragmentation, but InnoDB never fragments short rows; it moves them and rewrites them in a single piece
+
+To defragment data, you can either run OPTIMIZE TABLE or dump and reload the data
