@@ -1,0 +1,86 @@
+Partitions
+==========
+
+hat indexes are defined per-partition, rather than being created over the entire table. This is different from Oracle
+
+Partitioned data can be distributed physically, enabling the server to use multiple hard drives more efficiently
+
+If you really need to, you can back up and restore individual partitions, which is
+very helpful with extremely large datasets
+
+
+"Explain partions" to explain your query
+EXPLAIN PARTITIONS SELECT * FROM sales \G
+
+
+Views
+=====
+
+No triggers are allowed
+
+The easiest way for the server to implement a view is to execute its SELECT statement and place the result into a temporary table (TEMPTABLE)
+
+There are obvious performance and query optimization problems with this approach
+
+A better way to implement views is to rewrite a query that refers to the view, merging the view’s SQL with the query’s SQL. (Fig 7.1)
+
+MySQL uses TEMPTABLE when it contains GROUP, DISTINCT, aggregates, UNION
+
+A view is not updatable if it contains GROUP BY , UNION , an aggregate function, or any of a few other exceptions
+
+
+Foreign key contraints
+======================
+
+Foreign key constraint only in InnoDB
+Useful for data validation consistency
+Foreign keys can add significant overhead
+
+
+MySQL events are akin to cron jobs
+
+
+MySQL Caching
+=============
+
+Cache is a lookup table which is a hash of the query text itself
+
+Query won't be cached if it has Now() or current_date() ..etc
+
+Overheads:
+
+* Read queries must check the cache before beginning
+* If the query is cacheable and isn’t in the cache yet, there’s some overhead due to storing the result after generating it
+* There’s overhead for write queries, which must invalidate the cache entries for queries that use tables they change. Invalidation can be very costly if the cache is fragmented and/or large (has many cached queries, or is configured to use a large amount of memory)
+
+
+Invalidation can become a very serious problem with a large query cache. If there are many queries in the cache, the invalidation can take a long time and cause the entire system to stall while it works.
+
+
+show variables like '%query_cache%';
++------------------------------+----------+
+| Variable_name                | Value    |
++------------------------------+----------+
+| have_query_cache             | YES      |
+| query_cache_limit            | 1048576  | Queries results larger won't be cached
+| query_cache_min_res_unit     | 4096     |
+| query_cache_size             | 16777216 | Total allocated memory
+| query_cache_type             | ON       | Off, On, Demand http://bit.ly/1rba6dC
+| query_cache_wlock_invalidate | OFF      |
++------------------------------+----------+
+
+For more details http://dev.mysql.com/doc/refman/5.0/en/query-cache-configuration.html
+
+
+General Query Cache Optimizations
+=================================
+
+* Having multiple smaller tables instead of one huge one can help the query cache
+* It’s more efficient to batch writes than to do them singly to reduce invalidation
+* Cannot control the query cache on a per-database or per-table basis, but use query_cache_type Demand option
+* For a write-heavy application, disabling the query cache set BOTH (have_query_cache and query_cache_size)
+
+Extra
+=====
+
+thread_cache_size defines how many threads the server should cache for reuse "like pool"
